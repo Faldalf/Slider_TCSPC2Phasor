@@ -12,6 +12,12 @@ Created on Wed Aug  4 18:33:31 2021
 # Laser repetition fixed to 80 MHz.
 #
 # FS @faldalf 04/08/2021
+#
+# Update 26/10/2021
+# Trying to get the point directly on the circle
+# - created makeExponential2 to wrap values around, make it periodic -> does not have a huge effect but adding a fake component
+# - for visualisation it works to just set the circle radius to 0.49 (sort of cheating but does the trick )
+
 
 #%% Imports
 import numpy as np
@@ -26,6 +32,26 @@ def makeExponential (rep_rate, num_tcspc_chan, tau1, tau2=0, A2=0):
     A1 = 1- A2
     x = np.linspace (0, max_bin, num_tcspc_chan)
     y = A1 * np.exp (-x/tau1)+ A2 * np.exp (-x/tau2)
+ 
+   
+    return x, y
+
+def makeExponential2 (rep_rate, num_tcspc_chan, tau1, tau2=0, A2=0):
+    #Simulate an exponential decay (you could include noise, background or more components)
+    # Updated version that wraps long decays around the boundary by calculating a 25 ns decay
+    # Does not have a huge effect. 
+    # In fact ... introduces an artefact. 
+    max_bin = 1/rep_rate *10**9 # converts to ns
+    A1 = 1- A2
+    x = np.linspace (0, 2*max_bin, num_tcspc_chan)
+    y2 = A1 * np.exp (-x/tau1)+ A2 * np.exp (-x/tau2)
+ 
+    y = y2[:int(len(y2)/2)]
+    y = y + y2[int(len(y2)/2):]
+    
+    x = x[:int(len(y2)/2)]
+    y [y < 0.000001] = 0 # ensure values go to
+    
     
     return x, y
 
@@ -83,7 +109,7 @@ ax0.set_ylabel ('Normalised Counts (a.u.)')
 ax0.set_title ('TCSPC Decay Curve')
 
 phasor_plot, = ax1.plot (G_n1, S_n1, 'o', markersize=10)
-my_circle = plt.Circle((0.5, 0), radius=0.5, edgecolor='b', facecolor='None') # Plot unity circle for reference
+my_circle = plt.Circle((0.5, 0), radius=0.49, edgecolor='b', facecolor='None') # Plot unity circle for reference
 axes[1].add_patch (my_circle)
 ax1.set_xlim ([0,1])
 ax1.set_ylim ([0,1])
